@@ -29,6 +29,7 @@ app.use('/api/tx-types', require('./routes/typeRoutes'));
 app.use('/api/reward', require('./routes/rewardRoutes'));
 app.use('/api/task', require('./routes/taskRoutes'));
 app.use('/api/quiz', require('./routes/quizRoutes'));
+app.use('/api/referral', require('./routes/referralRoutes'));
 
 
 

@@ -280,3 +280,13 @@ CREATE TABLE quiz_histories (
     completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, quiz_id) -- একজন ইউজার একটি কুইজ মিশন একবারই কমপ্লিট করতে পারবে
 );
+
+// referral module 
+CREATE TABLE referrals (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    referrer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- যে রেফার করেছে
+    referred_user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE, -- নতুন ইউজার (১ জন ১ বারই রেফার হতে পারবে)
+    level INT DEFAULT 1, -- রেফারেল লেভেল (1, 2 বা 3)
+    reward_coin INT DEFAULT 0, -- এই রেফারের কারণে কত কয়েন বোনাস দেওয়া হলো
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
