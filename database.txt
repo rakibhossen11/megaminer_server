@@ -1,0 +1,25 @@
+-- ১. UUID (ಯೂನಿಕ್ ಐಡಿ) জেনারেট করার এক্সটেনশন অন করা
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ২. স্ট্যাটাসের জন্য ENUM টাইপ তৈরি করা
+CREATE TYPE user_status_enum AS ENUM ('Active', 'Blocked');
+
+-- ৩. তোমার দেওয়া আর্কিটেকচার অনুযায়ী একদম ফ্রেশ users টেবিল তৈরি
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    role_id INT DEFAULT 2, -- ২ = Regular User, ১ = Admin
+    username VARCHAR(50) UNIQUE NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    phone VARCHAR(20) UNIQUE,
+    password_hash TEXT NOT NULL,
+    referral_code VARCHAR(20) UNIQUE NOT NULL,
+    referred_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    email_verified BOOLEAN DEFAULT FALSE,
+    phone_verified BOOLEAN DEFAULT FALSE,
+    status user_status_enum DEFAULT 'Active',
+    last_login TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+

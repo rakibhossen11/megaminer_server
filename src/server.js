@@ -1,0 +1,45 @@
+const express = require('express');
+const cors = require('cors');
+require('dotenv').config();
+const db = require('../src/config/db');
+console.log(db);
+
+const authRoutes = require('./routes/authRoutes');
+// console.log(authRoutes);
+
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+
+app.use(cors());
+app.use(express.json());
+
+// রাউট ম্যাপ
+app.use('/api/auth', authRoutes);
+// console.log('working');
+
+app.get('/', (req, res) => {
+  res.json({ message: "Server is Live!" });
+});
+
+// app.listen(PORT, () => {
+//   console.log(`📡 Server running on http://localhost:${PORT}`);
+// });
+
+app.listen(PORT, () => {
+    console.log(`🚀 Server is running on port ${PORT}`);
+    console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+});
+
+app.get('/', (req, res) => {
+    res.json({
+        message: 'Ghorchai API Server',
+        version: '1.0.0',
+        endpoints: {
+            auth: '/api/auth',
+            health: '/health'
+        }
+    });
+});
