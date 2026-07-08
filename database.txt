@@ -52,3 +52,24 @@ CREATE TABLE user_devices (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, device_id) -- একজন ইউজারের এই ডিভাইসের জন্য একটাই রেকর্ড থাকবে
 );
+
+CREATE TABLE otp_verifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- ইউজারের সাথে কানেকশন
+    phone VARCHAR(20), -- যদি ফোনে ওটিপি পাঠানো হয়
+    email VARCHAR(100), -- যদি ইমেইলে ওটিপি পাঠানো হয়
+    otp VARCHAR(10) NOT NULL, -- যেমন: 482910 বা 1234
+    purpose VARCHAR(50) NOT NULL, -- 'Email_Verification', 'Phone_Verification', 'Password_Reset'
+    expires_at TIMESTAMP NOT NULL, -- ওটিপির মেয়াদের শেষ সময়
+    verified BOOLEAN DEFAULT FALSE, -- ভেরিফাইড হয়েছে কি না
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE refresh_tokens (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- ইউজারের সাথে কানেকশন
+    token TEXT NOT NULL UNIQUE, -- সিকিউর রিফ্রেশ টোকেন স্ট্রিং
+    expires_at TIMESTAMP NOT NULL, -- টোকেনের মেয়াদ শেষ হওয়ার সময়
+    revoked BOOLEAN DEFAULT FALSE, -- টোকেনটি বাতিল করা হয়েছে কি না
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

@@ -2,11 +2,12 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const db = require('../src/config/db');
-console.log(db);
+// console.log(db);
 
 const authRoutes = require('./routes/authRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const deviceRoutes = require('./routes/deviceRoutes');
+const otpRoutes = require('./routes/profileRoutes');
 
 
 const app = express();
@@ -20,6 +21,8 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/device', deviceRoutes);
+app.use('/api/otp', otpRoutes);
+app.use('/api/token', require('./routes/tokenRoutes'));
 
 
 

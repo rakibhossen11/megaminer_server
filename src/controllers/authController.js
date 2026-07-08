@@ -92,29 +92,61 @@ exports.login = async (req, res) => {
 
         // ৬. লগইন সফল হলে JWT Access Token তৈরি করা
         // টোকেনের ভেতর আমরা ইউজারের ID, username এবং role_id লক করে দিচ্ছি
+        // 🛠️ authController.js এর লগইন ফাংশনের ভেতর JWT জেনারেট করার অংশটি এভাবে আপডেট করো:
+
+        // ১. Access Token জেনারেট (expiresIn কমিয়ে ১ ঘণ্টা বা ১৫ মিনিট করতে পারো)
         const token = jwt.sign(
             { id: user.id, username: user.username, role_id: user.role_id },
             process.env.JWT_SECRET,
-            { expiresIn: '7d' } // টোকেনটি ৭ দিন পর্যন্ত অ্যাক্টিভ থাকবে
+            { expiresIn: '1h' }
         );
 
-        // ৭. ডাটাবেজে last_login টাইমস্ট্যাম্প আপডেট করা
-        await db.query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);
+        // ২. নতুন রিফ্রেশ টোকেন জেনারেট (মেয়াদ ৩০ দিন)
+        const refreshToken = jwt.sign(
+            { id: user.id },
+            process.env.JWT_REFRESH_SECRET, // এটি .env ফাইলে থাকতে হবে
+            { expiresIn: '30d' }
+        );
 
-        // ৮. ফ্রন্টএন্ডে টোকেন ও ইউজারের প্রয়োজনীয় ডাটা পাঠানো
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // ৩০ দিন পর এক্সপায়ার হবে
+
+        // ৩. ডাটাবেজে রিফ্রেশ টোকেন সেভ করা
+        await db.query(
+            'INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
+            [user.id, refreshToken, expiresAt]
+        );
+
+        // ৪. রেসপন্সে দুটো টোকেনই ফ্রন্টএন্ডে পাঠানো
         res.status(200).json({
             success: true,
             message: "Logged in successfully! 🚀",
-            token,
-            user: {
-                id: user.id,
-                username: user.username,
-                full_name: user.full_name,
-                email: user.email,
-                role_id: user.role_id,
-                status: user.status
-            }
+            token, // এটি এক্সেস টোকেন
+            refresh_token: refreshToken, // এটি রিফ্রেশ টোকেন
+            user: { id: user.id, username: user.username, email: user.email }
         });
+        // const token = jwt.sign(
+        //     { id: user.id, username: user.username, role_id: user.role_id },
+        //     process.env.JWT_SECRET,
+        //     { expiresIn: '7d' } // টোকেনটি ৭ দিন পর্যন্ত অ্যাক্টিভ থাকবে
+        // );
+
+        // ৭. ডাটাবেজে last_login টাইমস্ট্যাম্প আপডেট করা
+        // await db.query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);
+
+        // // ৮. ফ্রন্টএন্ডে টোকেন ও ইউজারের প্রয়োজনীয় ডাটা পাঠানো
+        // res.status(200).json({
+        //     success: true,
+        //     message: "Logged in successfully! 🚀",
+        //     token,
+        //     user: {
+        //         id: user.id,
+        //         username: user.username,
+        //         full_name: user.full_name,
+        //         email: user.email,
+        //         role_id: user.role_id,
+        //         status: user.status
+        //     }
+        // });
 
     } catch (error) {
         console.error("Login Controller Error:", error);
