@@ -52,7 +52,7 @@ exports.updateProfile = async (req, res) => {
 // 🔍 প্রোফাইল ডাটা গেট/ভিউ করার কন্ট্রোলার
 exports.getProfile = async (req, res) => {
     const { user_id } = req.params;
-    console.log(user_id);
+    // console.log(user_id);
 
     try {
         // এখানে আমরা users এবং user_profiles দুটি টেবিল JOIN করে ডাটা নিয়ে আসবো

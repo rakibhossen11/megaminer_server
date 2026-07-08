@@ -37,3 +37,18 @@ CREATE TABLE user_profiles (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE user_devices (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- ইউজারের সাথে কানেকশন
+    device_id VARCHAR(255) NOT NULL, -- এক্সপো/রিয়্যাক্ট নেটিভ থেকে আসা ইউনিক ডিভাইস আইডি
+    device_name VARCHAR(100), -- যেমন: Samsung S24, iPhone 15 Pro
+    os VARCHAR(50), -- Android অথবা iOS
+    app_version VARCHAR(20), -- যেমন: 1.0.0 (Beta)
+    fcm_token TEXT, -- পুশ নোটিফিকেশন পাঠানোর জন্য Firebase টোকেন
+    ip_address VARCHAR(45), -- ইউজারের আইপি অ্যাড্রেস (সিকিউরিটির জন্য)
+    last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, device_id) -- একজন ইউজারের এই ডিভাইসের জন্য একটাই রেকর্ড থাকবে
+);

@@ -6,6 +6,7 @@ console.log(db);
 
 const authRoutes = require('./routes/authRoutes');
 const profileRoutes = require('./routes/profileRoutes');
+const deviceRoutes = require('./routes/deviceRoutes');
 
 
 const app = express();
@@ -18,6 +19,8 @@ app.use(express.json());
 // রাউট ম্যাপ
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/device', deviceRoutes);
+
 
 
 app.get('/', (req, res) => {
