@@ -166,3 +166,59 @@ CREATE TABLE scratch_history (
 );
 
 
+-- ১. টাস্ক ক্যাটাগরি টেবিল তৈরি
+CREATE TABLE task_categories (
+    id SERIAL PRIMARY KEY, -- ১, ২, ৩ এভাবে অটো-ইনক্রিমেন্ট আইডি
+    name VARCHAR(100) UNIQUE NOT NULL, -- যেমন: 'Telegram Task', 'YouTube Task', 'App Download'
+    icon VARCHAR(255), -- ফ্রন্টএন্ডে আইকন দেখানোর জন্য আইকনের নাম বা ইমেজ ইউআরএল
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+// task module
+
+-- ২. 🚀 অ্যাপের জন্য প্রয়োজনীয় কিছু ডিফল্ট ক্যাটাগরি এখনই ডাটাবেজে ইনসার্ট (Seed) করে নাও:
+INSERT INTO task_categories (name, icon) VALUES
+('Telegram Join', 'telegram-icon-name'),
+('YouTube Watch', 'youtube-icon-name'),
+('App Download', 'download-icon-name'),
+('Twitter/X Follow', 'twitter-icon-name')
+ON CONFLICT (name) DO NOTHING;
+
+-- ১. টাস্ক টাইপ (যেমন: অটো-ভেরিফাই নাকি অ্যাডমিন ম্যানুয়ালি স্ক্রিনশট রিভিউ করবে) এবং স্ট্যাটাসের জন্য ENUM তৈরি
+CREATE TYPE task_type_enum AS ENUM ('Automatic', 'Manual_Review');
+CREATE TYPE task_status_enum AS ENUM ('Active', 'Inactive', 'Expired');
+
+-- ২. tasks টেবিল তৈরি
+CREATE TABLE tasks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    category_id INT NOT NULL REFERENCES task_categories(id) ON DELETE CASCADE, -- কোন ক্যাটাগরির টাস্ক
+    title VARCHAR(255) NOT NULL, -- টাস্কের নাম (যেমন: "Join our Official Telegram Channel")
+    description TEXT, -- টাস্কের নিয়মাবলী
+    reward_coin INT NOT NULL DEFAULT 0, -- এই কাজ করলে কত কয়েন পাবে
+    task_type task_type_enum DEFAULT 'Automatic', -- অটো নাকি স্ক্রিনশট রিভিউ লাগবে
+    task_url TEXT NOT NULL, -- যে লিংকে ইউজার কাজ করবে (টেলিগ্রাম বা ইউটিউব লিংক)
+    start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- টাস্ক কবে চালু হবে
+    end_date TIMESTAMP, -- টাস্কের মেয়াদ কবে শেষ হবে
+    status task_status_enum DEFAULT 'Active', -- কারেন্ট স্ট্যাটাস
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ১. টাস্ক সাবমিশন স্ট্যাটাসের জন্য ENUM তৈরি (যদি আগে তৈরি করা না থাকে)
+CREATE TYPE submission_status_enum AS ENUM ('Pending', 'Approved', 'Rejected');
+
+-- ২. task_submissions টেবিল তৈরি
+CREATE TABLE task_submissions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE, -- কোন টাস্ক
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- কোন ইউজার
+    proof TEXT, -- ইউজার যদি কোনো স্ক্রিনশট বা টেক্সট প্রুফ দেয় (যেমন: টেলিগ্রাম ইউজারনেম বা ইমেজের লিংক)
+    status submission_status_enum DEFAULT 'Pending', -- শুরুতে পেন্ডিং থাকবে
+    reviewed_by UUID REFERENCES users(id), -- কোন অ্যাডমিন এটা রিভিউ করলো
+    reviewed_at TIMESTAMP, -- রিভিউ করার সময়
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, task_id) -- একজন ইউজার একটি টাস্ক একবারই সাবমিট করতে পারবে
+);
+
+
