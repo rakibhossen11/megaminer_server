@@ -38,6 +38,9 @@ exports.register = async (req, res) => {
 
         const newUser = await db.query(queryText, values);
 
+        const userId = newUser.rows[0].id;
+        await db.query('INSERT INTO wallets (user_id) VALUES ($1)', [userId]);
+
         res.status(201).json({
             success: true,
             message: "User registered successfully! 🚀",

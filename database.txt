@@ -73,3 +73,96 @@ CREATE TABLE refresh_tokens (
     revoked BOOLEAN DEFAULT FALSE, -- টোকেনটি বাতিল করা হয়েছে কি না
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+// wallets tables 
+
+CREATE TABLE wallets (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE, -- ইউজারের সাথে ১:১ রিলেশন
+    total_coin INT DEFAULT 0,
+    available_coin INT DEFAULT 0,
+    pending_coin INT DEFAULT 0,
+    locked_coin INT DEFAULT 0,
+    total_cash NUMERIC(10, 2) DEFAULT 0.00, -- ডলার/টাকা ফ্র্যাকশন হ্যান্ডেল করার জন্য NUMERIC বেস্ট
+    available_cash NUMERIC(10, 2) DEFAULT 0.00,
+    pending_cash NUMERIC(10, 2) DEFAULT 0.00,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ১. ট্রানজেকশন টাইপ (ইনকাম নাকি খরচ) এবং স্ট্যাটাসের জন্য ENUM টাইপ তৈরি করা
+CREATE TYPE tx_type_enum AS ENUM ('Credit', 'Debit');
+CREATE TYPE tx_status_enum AS ENUM ('Pending', 'Success', 'Failed');
+
+-- ২. wallet_transactions টেবিল তৈরি
+CREATE TABLE wallet_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE CASCADE, -- ওয়ালেটের সাথে কানেকশন
+    transaction_type tx_type_enum NOT NULL, -- 'Credit' (যোগ) অথবা 'Debit' (বিয়োগ)
+    amount INT NOT NULL, -- ট্রানজেকশন কয়েনের সংখ্যা (যেমন: ৫০ বা ১০০ কয়েন)
+    reference_id VARCHAR(100), -- কুইজ আইডি, অ্যাড আইডি বা উইথড্রাল রিকোয়েস্ট আইডি (ট্র্যাকিংয়ের জন্য)
+    source VARCHAR(50) NOT NULL, -- 'Daily_Checkin', 'Reward_Ad', 'Spin_History', 'Quiz', 'Withdraw'
+    description TEXT, -- যেমন: "Earned 50 coins from daily checkin"
+    status tx_status_enum DEFAULT 'Success',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ১. transaction_types টেবিল তৈরি
+CREATE TABLE transaction_types (
+    id SERIAL PRIMARY KEY, -- ১, ২, ৩ এভাবে আইডেন্টিফাই করার জন্য SERIAL বেস্ট
+    name VARCHAR(50) UNIQUE NOT NULL, -- যেমন: 'Daily_Checkin', 'Quiz', 'Spin'
+    description TEXT, -- এই টাইপের বিস্তারিত বিবরণ
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ২. 🚀 [জরুরি] অ্যাপের জন্য প্রয়োজনীয় ডিফল্ট সোর্সগুলো এখনই ডাটাবেজে ইনসার্ট (Seed) করে নাও:
+INSERT INTO transaction_types (name, description) VALUES
+('Daily_Checkin', 'Coins earned from claiming the daily reward streak.'),
+('Reward_Ad', 'Coins rewarded for watching video network advertisements.'),
+('Spin_History', 'Coins won or lost from the lucky fortune wheel spin.'),
+('Scratch_History', 'Coins received from scratching the digital scratch cards.'),
+('Quiz', 'Coins earned by answering educational and knowledge quiz questions.'),
+('Withdraw', 'Coins deducted when a user submits a withdrawal payout request.')
+ON CONFLICT (name) DO NOTHING; -- আগে থেকে থাকলে ডুপ্লিকেট এরর দেবে না
+
+// reward section
+CREATE TABLE daily_checkins (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- ইউজারের সাথে কানেকশন
+    day INT NOT NULL, -- ১ থেকে ৭ নম্বর দিন ট্র্যাকিং (যেমন: Day 1, Day 2...)
+    reward_coin INT NOT NULL, -- ওই দিনের জন্য কত কয়েন পুরস্কার পেল
+    claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE reward_ads (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- ইউজারের সাথে কানেকশন
+    ad_network VARCHAR(50) NOT NULL, -- যেমন: 'AdMob', 'UnityAds', 'AppLovin'
+    reward_coin INT NOT NULL, -- ভিডিও দেখার জন্য কত কয়েন পুরস্কার পেল
+    watched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ১. রিওয়ার্ড টাইপ (কয়েন নাকি রিয়েল ডলার ক্যাশ) নির্ধারণের জন্য ENUM তৈরি
+CREATE TYPE spin_reward_type_enum AS ENUM ('Coin', 'Cash');
+
+-- ২. spin_history টেবিল তৈরি
+CREATE TABLE spin_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reward_coin INT DEFAULT 0, -- যদি কয়েন জেতে
+    reward_type spin_reward_type_enum DEFAULT 'Coin', -- 'Coin' অথবা 'Cash'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ১. স্ক্র্যাচ কার্ড রিওয়ার্ড টাইপের জন্য ENUM তৈরি
+CREATE TYPE scratch_reward_type_enum AS ENUM ('Coin', 'Cash');
+
+-- ২. scratch_history টেবিল তৈরি
+CREATE TABLE scratch_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reward_coin INT DEFAULT 0, -- কত কয়েন বা ক্যাশ জিতলো
+    reward_type scratch_reward_type_enum DEFAULT 'Coin', -- 'Coin' অথবা 'Cash'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+

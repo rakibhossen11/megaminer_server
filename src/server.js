@@ -23,6 +23,10 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/device', deviceRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/token', require('./routes/tokenRoutes'));
+app.use('/api/wallet', require('./routes/walletRoutes'));
+app.use('/api/transaction', require('./routes/transactionRoutes'));
+app.use('/api/tx-types', require('./routes/typeRoutes'));
+app.use('/api/reward', require('./routes/rewardRoutes'));
 
 
 
