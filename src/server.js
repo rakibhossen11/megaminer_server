@@ -5,7 +5,7 @@ const db = require('../src/config/db');
 console.log(db);
 
 const authRoutes = require('./routes/authRoutes');
-// console.log(authRoutes);
+const profileRoutes = require('./routes/profileRoutes');
 
 
 const app = express();
@@ -17,7 +17,8 @@ app.use(express.json());
 
 // রাউট ম্যাপ
 app.use('/api/auth', authRoutes);
-// console.log('working');
+app.use('/api/profile', profileRoutes);
+
 
 app.get('/', (req, res) => {
   res.json({ message: "Server is Live!" });

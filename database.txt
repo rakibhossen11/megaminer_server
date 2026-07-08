@@ -23,3 +23,17 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE user_profiles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE, -- users টেবিলের সাথে ১:১ কানেকশন
+    gender VARCHAR(20),
+    date_of_birth DATE,
+    country VARCHAR(100),
+    city VARCHAR(100),
+    address TEXT,
+    postal_code VARCHAR(20),
+    profile_image TEXT, -- এখানে ইমেজের URL বা লিঙ্ক সেভ হবে
+    bio TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
