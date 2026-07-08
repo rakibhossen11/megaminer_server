@@ -222,3 +222,61 @@ CREATE TABLE task_submissions (
 );
 
 
+// quiz modules
+-- ১. কুইজ ক্যাটাগরি টেবিল তৈরি
+CREATE TABLE quiz_categories (
+    id SERIAL PRIMARY KEY, -- ১, ২, ৩ এভাবে অটো-ইনক্রিমেন্ট আইডি
+    title VARCHAR(255) UNIQUE NOT NULL, -- কুইজের টাইটেল বা বিষয় (যেমন: "General Knowledge")
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ২. 🚀 অ্যাপের জন্য কিছু ডিফল্ট কুইজ বিষয় এখনই ডাটাবেজে ইনসার্ট (Seed) করে নাও:
+INSERT INTO quiz_categories (title) VALUES
+('General Knowledge'),
+('Science & Technology'),
+('Crypto & Blockchain'),
+('History & Geography')
+ON CONFLICT (title) DO NOTHING;
+
+-- ১. কুইজ ডিফিকাল্টি এবং স্ট্যাটাসের জন্য ENUM টাইপ তৈরি করা
+CREATE TYPE quiz_difficulty_enum AS ENUM ('Easy', 'Medium', 'Hard');
+CREATE TYPE quiz_status_enum AS ENUM ('Active', 'Inactive');
+
+-- ২. quizzes টেবিল তৈরি
+CREATE TABLE quizzes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    category_id INT NOT NULL REFERENCES quiz_categories(id) ON DELETE CASCADE, -- কোন ক্যাটাগরির কুইজ
+    title VARCHAR(255) NOT NULL, -- কুইজের নাম (যেমন: "Bitcoin Basics Quiz")
+    reward_coin INT NOT NULL DEFAULT 0, -- এই কুইজ পুরোটা শেষ করলে কত কয়েন বোনাস পাবে
+    time_limit INT NOT NULL DEFAULT 60, -- সেকেন্ডে কুইজের টোটাল সময় (যেমন: ৬০ বা ১২০ সেকেন্ড)
+    difficulty quiz_difficulty_enum DEFAULT 'Easy', -- Easy, Medium, Hard
+    status quiz_status_enum DEFAULT 'Active', -- Active নাকি Inactive
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ১. সঠিক উত্তরের অপশনগুলো ভ্যালিড রাখার জন্য একটি ENUM তৈরি (অপশনাল কিন্তু বেস্ট প্র্যাকটিস)
+CREATE TYPE quiz_answer_enum AS ENUM ('A', 'B', 'C', 'D');
+
+-- ২. quiz_questions টেবিল তৈরি
+CREATE TABLE quiz_questions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    quiz_id UUID NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE, -- কোন কুইজ সেটের আন্ডারে এই প্রশ্ন
+    question TEXT NOT NULL, -- মূল প্রশ্নটি
+    option_a VARCHAR(255) NOT NULL,
+    option_b VARCHAR(255) NOT NULL,
+    option_c VARCHAR(255) NOT NULL,
+    option_d VARCHAR(255) NOT NULL,
+    correct_answer quiz_answer_enum NOT NULL, -- 'A', 'B', 'C', 'D' এর যেকোনো একটি
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE quiz_histories (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    quiz_id UUID NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE, -- কোন কুইজ খেলেছে
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- কোন ইউজার খেলেছে
+    score INT NOT NULL DEFAULT 0, -- ইউজার কতটি সঠিক উত্তর দিল
+    reward_coin INT NOT NULL DEFAULT 0, -- এই কুইজ থেকে সে কত কয়েন জিতলো
+    completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, quiz_id) -- একজন ইউজার একটি কুইজ মিশন একবারই কমপ্লিট করতে পারবে
+);
