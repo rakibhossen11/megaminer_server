@@ -446,3 +446,48 @@ CREATE TABLE admins (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ১. admin_audit_logs টেবিল তৈরি
+CREATE TABLE admin_audit_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    admin_id UUID NOT NULL REFERENCES admins(id) ON DELETE CASCADE, -- কোন অ্যাডমিন কাজটি করেছে
+    action VARCHAR(100) NOT NULL, -- যেমন: 'UPDATE_BALANCE', 'APPROVE_WITHDRAWAL', 'DELETE_TASK'
+    target_table VARCHAR(100) NOT NULL, -- কোন টেবিলে চেঞ্জ করা হয়েছে (যেমন: 'wallets', 'withdrawals')
+    target_id VARCHAR(100), -- যে রো বা ডাটা চেঞ্জ হয়েছে তার আইডি (UUID বা INT)
+    old_value JSONB, -- পরিবর্তনের আগের ডাটা (JSON ফরম্যাটে স্টোর হবে)
+    new_value JSONB, -- পরিবর্তনের পরের ডাটা (JSON ফরম্যাটে স্টোর হবে)
+    ip_address VARCHAR(45), -- অ্যাডমিনের আইপি এড্রেস (IPv4 বা IPv6 হ্যান্ডেল করার জন্য)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ১. app_settings টেবিল তৈরি
+CREATE TABLE app_settings (
+    id SERIAL PRIMARY KEY,
+    app_name VARCHAR(100) NOT NULL DEFAULT 'Mega Miner App',
+    app_version VARCHAR(20) NOT NULL DEFAULT '1.0.0',
+    minimum_withdraw NUMERIC(10, 2) NOT NULL DEFAULT 50.00, -- ডিফল্ট সর্বনিম্ন উইথড্র অ্যামাউন্ট
+    coin_rate NUMERIC(10, 4) NOT NULL DEFAULT 0.01, -- যেমন: ১ কয়েন = ০.০১ টাকা/ডলার
+    referral_bonus INT NOT NULL DEFAULT 100, -- রেফার করলে কত কয়েন পাবে
+    daily_bonus INT NOT NULL DEFAULT 50, -- দৈনিক চেক-ইনে কত কয়েন পাবে
+    maintenance_mode BOOLEAN DEFAULT FALSE, -- TRUE হলে অ্যাপে মেইনটেইন্যান্স স্ক্রিন শো করবে
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ২. 🔒 সিকিউরিটি লকিং ট্রিপল চেক: টেবিলে যাতে ১টির বেশি রো ইনসার্ট না হতে পারে
+CREATE UNIQUE INDEX app_settings_single_row_idx ON app_settings ((id IS NOT NULL));
+
+-- ৩. 🚀 অ্যাপের প্রথম ও একমাত্র ডিফল্ট কনফিগারেশন এখনই সিড (Seed) করে নাও:
+INSERT INTO app_settings (id, app_name, app_version, minimum_withdraw, coin_rate, referral_bonus, daily_bonus, maintenance_mode)
+VALUES (1, 'Mega Miner PRO', '1.0.0', 50.00, 0.0100, 100, 50, false)
+ON CONFLICT (id) DO NOTHING;
+
+-- user logs
+
+CREATE TABLE user_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- কোন ইউজার কাজটি করেছে
+    activity VARCHAR(150) NOT NULL, -- যেমন: 'LOGIN', 'SUBMIT_TASK', 'WITHDRAW_REQUEST'
+    device VARCHAR(255), -- ইউজারের মোবাইল বা ওএস ডিটেইলস (যেমন: 'React-Native Android')
+    ip VARCHAR(45), -- ইউজারের আইপি এড্রেস
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+

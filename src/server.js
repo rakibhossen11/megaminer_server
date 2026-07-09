@@ -34,6 +34,9 @@ app.use('/api/withdraw', require('./routes/withdrawRoutes'));
 app.use('/api/plans', require('./routes/planRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/support', require('./routes/supportRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/settings', require('./routes/settingRoutes'));
+app.use('/api/user-logs', require('./routes/userLogRoutes'));
 
 
 
