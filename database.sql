@@ -290,3 +290,159 @@ CREATE TABLE referrals (
     reward_coin INT DEFAULT 0, -- এই রেফারের কারণে কত কয়েন বোনাস দেওয়া হলো
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+// withdrawal modules
+-- ১. গেটওয়ে স্ট্যাটাসের জন্য ENUM তৈরি (Active মানে অ্যাপে দেখাবে, Inactive মানে সাময়িক বন্ধ)
+CREATE TYPE method_status_enum AS ENUM ('Active', 'Inactive');
+
+-- ২. withdrawal_methods টেবিল তৈরি
+CREATE TABLE withdrawal_methods (
+    id SERIAL PRIMARY KEY, -- ১, ২, ৩ এভাবে ছোট আইডি ট্র্যাকিংয়ের জন্য
+    method_name VARCHAR(100) UNIQUE NOT NULL, -- যেমন: 'Bkash', 'Nagad', 'Binance_USDT'
+    minimum_amount NUMERIC(10, 2) NOT NULL DEFAULT 1.00, -- সর্বনিম্ন কত ডলার/টাকা উইথড্র করা যাবে
+    charge NUMERIC(10, 2) NOT NULL DEFAULT 0.00, -- উইথড্র ফি বা প্রসেসিং চার্জ
+    status method_status_enum DEFAULT 'Active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ৩. 🚀 অ্যাপের জন্য প্রয়োজনীয় কিছু পেমেন্ট গেটওয়ে এখনই ডাটাবেজে ইনসার্ট (Seed) করে নাও:
+INSERT INTO withdrawal_methods (method_name, minimum_amount, charge, status) VALUES
+('Bkash', 50.00, 5.00, 'Active'), -- সর্বনিম্ন ৫০ টাকা উইথড্র, ৫ টাকা চার্জ
+('Nagad', 50.00, 0.00, 'Active'), -- সর্বনিম্ন ৫০ টাকা উইথড্র, ০ চার্জ
+('Binance_USDT', 5.00, 0.50, 'Active') -- সর্বনিম্ন ৫ ডলার উইথড্র, ০.৫০ ডলার চার্জ
+ON CONFLICT (method_name) DO NOTHING;
+
+
+-- ১. উইথড্রাল স্ট্যাটাসের জন্য ENUM তৈরি (যদি আগে তৈরি করা না থাকে)
+CREATE TYPE withdraw_status_enum AS ENUM ('Pending', 'Approved', 'Rejected');
+
+-- ২. withdrawals টেবিল তৈরি
+CREATE TABLE withdrawals (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- কোন ইউজার টাকা তুলছে
+    payment_method VARCHAR(100) NOT NULL, -- যেমন: 'Bkash', 'Nagad'
+    account_number VARCHAR(100) NOT NULL, -- ইউজারের পার্সোনাল বিকাশ/নগদ/বাইনান্স নাম্বার/এড্রেস
+    amount NUMERIC(10, 2) NOT NULL, -- কত টাকা বা ডলার উইথড্র করছে
+    status withdraw_status_enum DEFAULT 'Pending', -- ডিফল্ট পেন্ডিং
+    admin_note TEXT, -- রিজেক্ট করলে অ্যাডমিন কারণ লিখে দিতে পারবে (যেমন: "Wrong account number")
+    requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    approved_at TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+// membership_plans modules
+
+-- ১. মেম্বারশিপ প্ল্যান স্ট্যাটাসের জন্য ENUM তৈরি 
+CREATE TYPE plan_status_enum AS ENUM ('Active', 'Inactive');
+
+-- ২. membership_plans টেবিল তৈরি
+CREATE TABLE membership_plans (
+    id SERIAL PRIMARY KEY, -- ১, ২, ৩ এভাবে প্ল্যান আইডি ট্র্যাকিং
+    title VARCHAR(100) UNIQUE NOT NULL, -- যেমন: 'Silver Miner', 'Gold Miner', 'Diamond VIP'
+    duration INT NOT NULL, -- প্ল্যানের মেয়াদ দিন সংখ্যায় (যেমন: ৩০ দিন, ৯০ দিন)
+    price NUMERIC(10, 2) NOT NULL DEFAULT 0.00, -- প্যাকেজের দাম (ডলার বা টাকায়)
+    bonus_percentage INT NOT NULL DEFAULT 0, -- কত পারসেন্ট এক্সট্রা ইনকাম বুস্ট পাবে (যেমন: ২০ মানে ২০%)
+    status plan_status_enum DEFAULT 'Active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ৩. 🚀 অ্যাপের জন্য ৩টি আকর্ষক ডিফল্ট প্ল্যান এখনই ডাটাবেজে ইনসার্ট (Seed) করে নাও:
+INSERT INTO membership_plans (title, duration, price, bonus_percentage, status) VALUES
+('Starter Miner', 30, 10.00, 15, 'Active'),  -- ১০ ডলার, মেয়াদ ৩০ দিন, ১৫% এক্সট্রা ইনকাম বুস্ট
+('Pro Gold Miner', 90, 25.00, 40, 'Active'), -- ২৫ ডলার, মেয়াদ ৯০ দিন, ৪Mapping০% এক্সট্রা ইনকাম বুস্ট
+('Mega Diamond VIP', 365, 99.00, 100, 'Active') -- ৯৯ ডলার, মেয়াদ ১ বছর, ১০০% (দ্বিগুণ) ইনকাম বুস্ট
+ON CONFLICT (title) DO NOTHING;
+
+
+-- ১. সাবস্ক্রিপশন স্ট্যাটাসের জন্য ENUM তৈরি 
+CREATE TYPE sub_status_enum AS ENUM ('Active', 'Expired', 'Cancelled');
+
+-- ২. user_subscriptions টেবিল তৈরি
+CREATE TABLE user_subscriptions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- কোন ইউজার কিনেছে
+    membership_id INT NOT NULL REFERENCES membership_plans(id) ON DELETE CASCADE, -- কোন প্ল্যান কিনেছে
+    start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- কেনার তারিখ
+    end_date TIMESTAMP NOT NULL, -- মেয়াদ শেষ হওয়ার তারিখ
+    status sub_status_enum DEFAULT 'Active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- notification system -- 
+
+-- ১. নোটিফিকেশন টাইপের জন্য ENUM তৈরি 
+CREATE TYPE notification_type_enum AS ENUM ('All', 'Personal', 'Transactional');
+
+-- ২. notifications টেবিল তৈরি
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE, -- যদি টাইপ 'Personal' বা 'Transactional' হয়, তবে নির্দিষ্ট ইউজারের আইডি বসবে। 'All' হলে এটি NULL থাকবে।
+    title VARCHAR(255) NOT NULL, -- নোটিফিকেশনের শিরোনাম
+    body TEXT NOT NULL, -- নোটিফিকেশনের মূল মেসেজ
+    image TEXT, -- ছবির লিঙ্ক/ইউআরএল
+    notification_type notification_type_enum DEFAULT 'All',
+    is_read BOOLEAN DEFAULT FALSE, -- ইউজার নোটিফিকেশনটি ওপেন করেছে কি না (ইন-অ্যাপ ইনবক্সের জন্য)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE user_notification_statuses (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    notification_id UUID NOT NULL REFERENCES notifications(id) ON DELETE CASCADE, -- কোন নোটিফিকেশন
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- কোন ইউজার
+    is_read BOOLEAN DEFAULT TRUE, -- যেহেতু ক্লিক করার পরই এখানে ডাটা আসবে, তাই ডিফল্ট TRUE
+    read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, notification_id) -- একজন ইউজার একটা নোটিফিকেশনে একবারই রিড স্ট্যাটাস দিতে পারবে
+);
+
+-- supports modules
+
+-- ১. সাপোর্ট টিকিট প্রায়োরিটি এবং স্ট্যাটাসের জন্য ENUM তৈরি করা
+CREATE TYPE ticket_priority_enum AS ENUM ('Low', 'Medium', 'High');
+CREATE TYPE ticket_status_enum AS ENUM ('Open', 'In_Progress', 'Resolved', 'Closed');
+
+-- ২. support_tickets টেবিল তৈরি
+CREATE TABLE support_tickets (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- কোন ইউজার কমপ্লেইন করেছে
+    subject VARCHAR(255) NOT NULL, -- অভিযোগের মূল বিষয় (যেমন: "Withdrawal not received")
+    category VARCHAR(100) NOT NULL, -- ক্যাটাগরি (যেমন: "Payment", "Quiz", "Account", "Bug")
+    priority ticket_priority_enum DEFAULT 'Medium', -- Low, Medium, High
+    status ticket_status_enum DEFAULT 'Open', -- শুরুতে এটি Open থাকবে
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ১. সেন্ডার টাইপের জন্য ENUM তৈরি করা
+CREATE TYPE ticket_sender_enum AS ENUM ('User', 'Admin');
+
+-- ২. ticket_messages টেবিল তৈরি
+CREATE TABLE ticket_messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    ticket_id UUID NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE, -- কোন টিকিটের আন্ডারে চ্যাট হচ্ছে
+    sender_type ticket_sender_enum NOT NULL, -- 'User' অথবা 'Admin'
+    sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- যে মেসেজ পাঠিয়েছে তার আইডি
+    message TEXT NOT NULL, -- মূল চ্যাট মেসেজ
+    attachment TEXT, -- কোনো স্ক্রিনশট বা ফাইল লিঙ্ক থাকলে
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Admin Modules 
+-- ১. অ্যাডমিন রোল এবং স্ট্যাটাসের জন্য ENUM তৈরি করা
+CREATE TYPE admin_role_enum AS ENUM ('Super_Admin', 'Moderator', 'Support_Agent');
+CREATE TYPE admin_status_enum AS ENUM ('Active', 'Inactive', 'Suspended');
+
+-- ২. admins টেবিল তৈরি
+CREATE TABLE admins (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(150) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role admin_role_enum DEFAULT 'Moderator',
+    status admin_status_enum DEFAULT 'Active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+

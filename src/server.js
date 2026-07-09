@@ -30,6 +30,10 @@ app.use('/api/reward', require('./routes/rewardRoutes'));
 app.use('/api/task', require('./routes/taskRoutes'));
 app.use('/api/quiz', require('./routes/quizRoutes'));
 app.use('/api/referral', require('./routes/referralRoutes'));
+app.use('/api/withdraw', require('./routes/withdrawRoutes'));
+app.use('/api/plans', require('./routes/planRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/support', require('./routes/supportRoutes'));
 
 
 
