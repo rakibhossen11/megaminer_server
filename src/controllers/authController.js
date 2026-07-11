@@ -6,7 +6,7 @@ exports.register = async (req, res) => {
     const { username, full_name, email, phone, password, referred_by } = req.body;
     console.log('server hit');
     // console.log(db);
-    // 
+    
     if (!username || !full_name || !email || !password) {
         return res.status(400).json({ success: false, error: "Please fill all required fields" });
     }
@@ -61,7 +61,9 @@ exports.register = async (req, res) => {
 
 // 🔐 ইউজার লগইন (Sign-In) কন্ট্রোলার
 exports.login = async (req, res) => {
+    console.log('server hit');
     const { email, password } = req.body; // ফ্রন্টএন্ড বা পোস্টম্যান থেকে আসবে
+    console.log('server hit');
 
     // ১. ইনপুট ভ্যালিডেশন চেক
     if (!email || !password) {
