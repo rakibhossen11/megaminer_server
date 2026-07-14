@@ -9,6 +9,7 @@ const profileRoutes = require('./routes/profileRoutes');
 const deviceRoutes = require('./routes/deviceRoutes');
 const otpRoutes = require('./routes/profileRoutes');
 const dailyCheckinRoutes = require('./routes/dailyRoutes');
+const spinRoutes = require('./routes/spinRoutes');
 
 
 const app = express();
@@ -22,6 +23,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/daily', dailyCheckinRoutes);
+app.use('/api/spin', spinRoutes);
 app.use('/api/device', deviceRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/token', require('./routes/tokenRoutes'));
