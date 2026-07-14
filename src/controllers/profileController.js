@@ -51,15 +51,31 @@ exports.updateProfile = async (req, res) => {
 
 // 🔍 প্রোফাইল ডাটা গেট/ভিউ করার কন্ট্রোলার
 exports.getProfile = async (req, res) => {
-    const { user_id } = req.params;
-    // console.log(user_id);
+    console.log('📥 Profile request received');
+    console.log("req server", req.user);
+    const user_id = req.user.id;
+    console.log("User ID:", user_id);
 
     try {
-        // এখানে আমরা users এবং user_profiles দুটি টেবিল JOIN করে ডাটা নিয়ে আসবো
+        // 🎯 এখানে আমরা users, user_profiles এবং wallets তিনটি টেবিল JOIN করে ডাটা নিয়ে আসছি
         const profileQuery = await db.query(`
-            SELECT u.id, u.username, u.full_name, u.email, p.gender, p.date_of_birth, p.country, p.city, p.address, p.profile_image, p.bio
+            SELECT 
+                u.id, 
+                u.username, 
+                u.full_name, 
+                u.email, 
+                p.gender, 
+                p.date_of_birth, 
+                p.country, 
+                p.city, 
+                p.address, 
+                p.profile_image, 
+                p.bio,
+                COALESCE(w.available_coin, 0) AS available_coin, -- 🪙 ওয়ালেটের কয়েন (ফাঁকা থাকলে ০ দেখাবে)
+                COALESCE(w.available_cash, 0.00) AS available_cash -- 💵 ওয়ালেটের ক্যাশ (ফাঁকা থাকলে ০.০০ দেখাবে)
             FROM users u
             LEFT JOIN user_profiles p ON u.id = p.user_id
+            LEFT JOIN wallets w ON u.id = w.user_id -- 👈 ওয়ালেট টেবিলটি JOIN করলাম
             WHERE u.id = $1
         `, [user_id]);
 
@@ -67,9 +83,10 @@ exports.getProfile = async (req, res) => {
             return res.status(404).json({ success: false, error: "User not found" });
         }
 
+        // ফ্রন্টএন্ডে রেসপন্স পাঠানো হচ্ছে
         res.status(200).json({
             success: true,
-            data: profileQuery.rows[0]
+            data: profileQuery.rows[0] // এর ভেতর এখন available_coin এবং available_cash-ও থাকবে
         });
 
     } catch (error) {

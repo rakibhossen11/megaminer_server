@@ -11,7 +11,7 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-console.log(pool);
+// console.log(pool);
 
 pool.on('connect', () => {
   console.log('🐘 PostgreSQL Database Connected Successfully!');

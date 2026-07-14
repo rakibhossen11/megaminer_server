@@ -8,6 +8,7 @@ const authRoutes = require('./routes/authRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const deviceRoutes = require('./routes/deviceRoutes');
 const otpRoutes = require('./routes/profileRoutes');
+const dailyCheckinRoutes = require('./routes/dailyRoutes');
 
 
 const app = express();
@@ -20,6 +21,7 @@ app.use(express.json());
 // রাউট ম্যাপ
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/daily', dailyCheckinRoutes);
 app.use('/api/device', deviceRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/token', require('./routes/tokenRoutes'));
